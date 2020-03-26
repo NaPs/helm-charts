@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    {{- include "mosquitto.labels" . | nindent 4 }}
+  name: {{ template "mosquitto.fullname" . }}
+data:
+  mosquitto.conf: |-
+    {{- if .Values.mosquitto.persistence.enabled }}
+    persistence true
+    {{- else }}
+    persistence false
+    {{- end }}
+    persistence_location /mosquitto/data/
+    log_dest stdout
+    password_file /mosquitto/config/accounts.conf
+    acl_file /mosquitto/config/acls.conf
+    listener {{ .Values.service.ports.mqtt }}
+
+    {{- if .Values.mosquitto.ssl.enabled }}
+    listener {{ .Values.service.ports.mqttssl }}
+    certfile /mosquitto/ssl/tls.crt
+    keyfile /mosquitto/ssl/tls.key
+    {{- end }}
+{{ .Values.mosquitto.config | indent 4 }}
+  accounts.conf: |-
+{{ .Values.mosquitto.users | indent 4 }}
+  acls.conf: |-
+{{ .Values.mosquitto.acls | indent 4 }}

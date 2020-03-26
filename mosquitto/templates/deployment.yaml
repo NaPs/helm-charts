@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "mosquitto.fullname" . }}
+  labels:
+    {{- include "mosquitto.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "mosquitto.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "mosquitto.selectorLabels" . | nindent 8 }}
+    spec:
+    {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            {{- range $key, $value := .Values.service.ports }}
+            - name: {{ $key }}
+              containerPort: {{ $value }}
+              protocol: TCP
+            {{- end }}
+          livenessProbe:
+            tcpSocket:
+              port: {{ .Values.service.ports.mqtt }}
+          readinessProbe:
+            httpGet:
+            tcpSocket:
+              port: {{ .Values.service.ports.mqtt }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+          - name: config-volume
+            mountPath: /mosquitto/config
+          - name: mosquitto-data
+            mountPath: {{ .Values.mosquitto.persistence.path }}
+            subPath: {{ .Values.mosquitto.persistence.subPath }}
+          {{- if .Values.mosquitto.ssl.enabled }}
+          - name: ssl-volume
+            mountPath: /mosquitto/ssl
+          {{- end }}
+      volumes:
+        - name: config-volume
+          configMap:
+            name: {{ template "mosquitto.fullname" . }}
+        {{- if .Values.mosquitto.ssl.enabled }}
+        - name: ssl-volume
+          secret:
+            secretName: {{ .Values.mosquitto.ssl.secretName }}
+        {{- end }}
+        {{- if not .Values.mosquitto.persistence.enabled }}
+        - name: "mosquitto-data"
+          emptyDir: {}
+        {{- else }}
+        - name: "mosquitto-data"
+          persistentVolumeClaim:
+        {{- if .Values.mosquitto.persistence.existingClaim }}
+            claimName: {{ .Values.mosquitto.persistence.existingClaim }}
+        {{- else }}
+            claimName: {{ template "mosquitto.fullname" . }}
+        {{- end }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
