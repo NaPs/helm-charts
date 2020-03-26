@@ -19,6 +19,7 @@ data:
 
     {{- if .Values.mosquitto.ssl.enabled }}
     listener {{ .Values.service.ports.mqttssl }}
+    cafile /mosquitto/ssl/tls.crt
     certfile /mosquitto/ssl/tls.crt
     keyfile /mosquitto/ssl/tls.key
     {{- end }}
