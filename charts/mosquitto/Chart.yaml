@@ -4,3 +4,5 @@ description: A Helm chart packaging Mosquitto
 type: application
 version: 1.0.1
 appVersion: 1.6.9
+home: https://github.com/NaPs/helm-charts/tree/master/charts/mosquitto
+icon: https://mosquitto.org/images/mosquitto-text-side-28.png
